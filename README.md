@@ -1,5 +1,7 @@
 # Sensu-Plugins-Rust-loader
 
+[![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.txt)
+
 Sensu plugins uses Rust.
 
 ## Installation ##
