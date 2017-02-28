@@ -7,7 +7,7 @@ Sensu plugins uses Rust.
 ## Installation ##
 
   1. git clone https://github.com/metalels/sensu-plugins-rust-loader.git
-  2. execute metrics/metrics-rust-loader
+  2. execute metrics/metrics-rust-loader metrics/metrics-rust-loader.yaml
 
 ## Dependencies of compile ##
 
@@ -27,12 +27,6 @@ Options:
   -s, --show                          only print config envs
   -d, --debug                         print debug logs
   -h, --help                          print help menu
-```
-
-## Sample ##
-
-```
-metrics-rust-loader metrics-rust-loader.yaml 2>/dev/null
 ```
 
 ## Authors ##
