@@ -22,6 +22,7 @@ Usage: metrics-rust-loader CONF_FILE_PATH [options]
 
 Requires:
     CONF_FILE_PATH: path to config file
+                    * only supported toml or yaml
 
 Options:
     -m, --mode MODE(snmp|url)     set only monitor mode

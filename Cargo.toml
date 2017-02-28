@@ -8,5 +8,6 @@ name = "metrics-rust-loader"
 path = "src/bin/metrics-rust-loader.rs"
 
 [dependencies]
+"toml"        = "*"
 "yaml-rust"   = "*"
 "getopts"     = "*"

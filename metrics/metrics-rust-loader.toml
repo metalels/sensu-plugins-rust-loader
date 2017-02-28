@@ -1,0 +1,67 @@
+[snmp]
+bin = "./metrics/metrics-snmp"
+
+[[snmp.hosts]]
+name = "test-switch"
+host = "192.168.0.1"
+community = "switch-public"
+
+[[snmp.hosts]]
+name = "test-server"
+host = "192.168.0.2"
+
+[[snmp.metrics]]
+metric_name = "ss"
+targets = ["test-server"]
+
+[[snmp.metrics]]
+metric_name = "mem"
+targets = ["test-server"]
+
+[[snmp.metrics]]
+metric_name = "ifinout"
+targets = ["test-server", "test-switch"]
+oids = [
+  "1.3.6.1.2.1.2.2.1.10.1:ifInOctets.1",
+  "1.3.6.1.2.1.2.2.1.10.2:ifInOctets.2",
+  "1.3.6.1.2.1.2.2.1.10.3:ifInOctets.3",
+  "1.3.6.1.2.1.2.2.1.10.4:ifInOctets.4",
+  "1.3.6.1.2.1.2.2.1.10.5:ifInOctets.5",
+  "1.3.6.1.2.1.2.2.1.16.1:ifOutOctets.1",
+  "1.3.6.1.2.1.2.2.1.16.2:ifOutOctets.2",
+  "1.3.6.1.2.1.2.2.1.16.3:ifOutOctets.3",
+  "1.3.6.1.2.1.2.2.1.16.4:ifOutOctets.4",
+  "1.3.6.1.2.1.2.2.1.16.5:ifOutOctets.5",
+  "1.3.6.1.2.1.2.2.1.20.1:ifOutErrors.1",
+  "1.3.6.1.2.1.2.2.1.20.2:ifOutErrors.2",
+  "1.3.6.1.2.1.2.2.1.20.3:ifOutErrors.3",
+  "1.3.6.1.2.1.2.2.1.20.4:ifOutErrors.4",
+  "1.3.6.1.2.1.2.2.1.20.5:ifOutErrors.5",
+  "1.3.6.1.2.1.2.2.1.14.1:ifInErrors.1",
+  "1.3.6.1.2.1.2.2.1.14.2:ifInErrors.2",
+  "1.3.6.1.2.1.2.2.1.14.3:ifInErrors.3",
+  "1.3.6.1.2.1.2.2.1.14.4:ifInErrors.4",
+  "1.3.6.1.2.1.2.2.1.14.5:ifInErrors.5"
+]
+
+[response-url]
+bin = "./metrics/metrics-response-url"
+
+[[response-url.metrics]]
+prefix = "test"
+timeout = "10"
+urls = [
+  "https://github.com/",
+  "http://valid/http/url/"
+]
+
+[[response-url.metrics]]
+prefix = "self-cert-ng"
+urls = ["https://invalid/self/cert/url/"]
+
+[[response-url.metrics]]
+prefix = "insecure-ok"
+ssl_verify_none = true
+urls = ["https://invalid/self/cert/url/"]
+
+
