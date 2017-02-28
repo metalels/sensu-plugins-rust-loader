@@ -6,6 +6,7 @@ use std::process::{Command, ExitStatus};
 use std::io::{Write, Read};
 use std::fs::OpenOptions;
 use std::collections::HashMap;
+use std::thread;
 use getopts::Options;
 use yaml_rust::YamlLoader;
 
@@ -22,7 +23,7 @@ fn multiple_opt_join(conf: &Vec<yaml_rust::Yaml>) -> Option<String> {
   Some(res.join(","))
 }
 
-fn execute_command(command: &str, func_opts: Vec<String>, target_opts: Vec<&str>) -> ExitStatus {
+fn execute_command(command: String, func_opts: Vec<String>, target_opts: Vec<String>) -> ExitStatus {
   let mut child = Command::new(command)
     .args(&func_opts)
     .args(&target_opts)
@@ -32,41 +33,40 @@ fn execute_command(command: &str, func_opts: Vec<String>, target_opts: Vec<&str>
   return status;
 }
 
-fn snmp_metrics(snmp: &yaml_rust::Yaml, debug: bool, all_debug: bool) {
-  let mut snmp_hosts: HashMap<&str, Vec<&str>> = HashMap::new();
-  let binary = snmp["bin"].as_str().unwrap();
+fn snmp_metrics(snmp: &yaml_rust::Yaml, mt: bool, debug: bool, all_debug: bool) {
+  let mut snmp_hosts: HashMap<&str, Vec<String>> = HashMap::new();
   let hosts = snmp["hosts"].as_vec().unwrap();
   for target in hosts {
-    let mut cmd_opt: Vec<&str> = Vec::with_capacity(hosts.len());
+    let mut cmd_opt: Vec<String> = Vec::with_capacity(hosts.len());
     let mut name;
 
     match target["host"].as_str() {
       Some(m) => {
-        cmd_opt.push("-h");
-        cmd_opt.push(m);
+        cmd_opt.push("-h".to_string());
+        cmd_opt.push(m.to_string());
         name = m;
       }
       None => { name = "127.0.0.1" }
     };
     match target["name"].as_str() {
       Some(m) => {
-        cmd_opt.push("-n");
-        cmd_opt.push(m);
+        cmd_opt.push("-n".to_string());
+        cmd_opt.push(m.to_string());
         name = m
       }
       None => { }
     };
     match target["port"].as_str() {
       Some(m) => {
-        cmd_opt.push("-p");
-        cmd_opt.push(m);
+        cmd_opt.push("-p".to_string());
+        cmd_opt.push(m.to_string());
       }
       None => { }
     };
     match target["community"].as_str() {
       Some(m) => {
-        cmd_opt.push("-c");
-        cmd_opt.push(m);
+        cmd_opt.push("-c".to_string());
+        cmd_opt.push(m.to_string());
       }
       None => { }
     };
@@ -74,7 +74,7 @@ fn snmp_metrics(snmp: &yaml_rust::Yaml, debug: bool, all_debug: bool) {
   }
 
   if debug {
-    println!("metrics-snmp binary: {:?}", binary);
+    println!("metrics-snmp binary: {}", snmp["bin"].as_str().unwrap());
     println!("hosts: {:?}", snmp_hosts);
   }
   if !snmp["metrics"].is_badvalue() {
@@ -105,16 +105,31 @@ fn snmp_metrics(snmp: &yaml_rust::Yaml, debug: bool, all_debug: bool) {
         None => { }
       };
       if !metric["targets"].is_badvalue() {
+        let mut children = vec![];
         for target in metric["targets"].as_vec().unwrap() {
           let target = target.as_str().unwrap();
           if snmp_hosts.contains_key(target) {
+            let binary = snmp["bin"].as_str().unwrap().to_string();
+            let host = snmp_hosts[target].clone();
+            let opts1 = cmd_opt.clone();
             if debug {
-              println!("{} {:?} {:?}", binary, cmd_opt.clone(), snmp_hosts[target].clone());
+              println!("{} {:?} {:?}", binary, opts1, host);
             }
-            let _ = execute_command(binary, cmd_opt.clone(), snmp_hosts[target].clone());
-
+            if mt {
+              children.push(thread::spawn(move || {
+                  let _ = execute_command(binary, opts1, host);
+                }
+              ));
+            } else {
+              let _ = execute_command(binary, opts1, host);
+            }
           } else {
             let _ = writeln!(&mut std::io::stderr(), "Target {} is not defined.", target);
+          }
+        }
+        if mt {
+          for child in children {
+            let _ = child.join();
           }
         }
       }
@@ -122,12 +137,12 @@ fn snmp_metrics(snmp: &yaml_rust::Yaml, debug: bool, all_debug: bool) {
   }
 }
 
-fn url_response_metrics(resp: &yaml_rust::Yaml, debug: bool, all_debug: bool) {
-  let binary = resp["bin"].as_str().unwrap();
+fn url_response_metrics(resp: &yaml_rust::Yaml, mt: bool, debug: bool, all_debug: bool) {
   if debug {
-    println!("metrics-snmp binary: {:?}", binary);
+    println!("metrics-snmp binary: {}", resp["bin"].as_str().unwrap());
   }
   if !resp["metrics"].is_badvalue() {
+    let mut children = vec![];
     for metric in resp["metrics"].as_vec().unwrap() {
       let mut cmd_opt: Vec<String> = Vec::new();
       match metric["urls"].as_vec() {
@@ -180,10 +195,24 @@ fn url_response_metrics(resp: &yaml_rust::Yaml, debug: bool, all_debug: bool) {
         }
         None => { }
       };
+      let binary = resp["bin"].as_str().unwrap().to_string();
+      let opts1 = cmd_opt.clone();
       if debug {
-        println!("{} {:?}", binary, cmd_opt.clone());
+        println!("{} {:?}", binary, opts1);
       }
-      let _ = execute_command(binary, cmd_opt.clone(), Vec::new());
+      if mt {
+        children.push(thread::spawn(move || {
+            let _ = execute_command(binary, opts1, Vec::new());
+          }
+        ));
+      } else {
+        let _ = execute_command(binary, opts1, Vec::new());
+      }
+    }
+    if mt {
+      for child in children {
+        let _ = child.join();
+      }
     }
   }
 }
@@ -194,6 +223,7 @@ fn main() {
   let program = args[0].clone();
   let mut opts = Options::new();
   opts.optopt("m", "mode", "set only monitor mode", "MODE(snmp|url)");
+  opts.optflag("s", "single", "disable multithreading mode, and execute single thread");
   opts.optflag("d", "debug", "print debug logs");
   opts.optflag("D", "debug-all", "print all(chain) debug logs");
   opts.optflag("h", "help", "print this help menu");
@@ -216,9 +246,13 @@ fn main() {
     return;
   };
 
+  let mut multi_thread = true;
   let mut debug = false;
   let mut all_debug = false;
 
+  if matches.opt_present("s") {
+    multi_thread = false;
+  }
   if matches.opt_present("D") {
     debug = true;
     all_debug = true;
@@ -264,11 +298,11 @@ fn main() {
   let resp = &conf["response-url"];
 
   if (mode == "all" || mode == "snmp") && !snmp["bin"].is_badvalue() && !snmp["hosts"].is_badvalue() {
-    snmp_metrics(snmp, debug, all_debug);
+    snmp_metrics(snmp, multi_thread, debug, all_debug);
   }
 
   if (mode == "all" || mode == "url") && !resp["bin"].is_badvalue() && !resp["metrics"].is_badvalue() {
-    url_response_metrics(resp, debug, all_debug);
+    url_response_metrics(resp, multi_thread, debug, all_debug);
   }
 }
 

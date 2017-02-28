@@ -25,6 +25,8 @@ Requires:
 
 Options:
     -m, --mode MODE(snmp|url)     set only monitor mode
+    -s, --single                  disable multithreading mode,
+                                    and execute single thread
     -d, --debug                   print debug logs
     -D, --debug-all               print all(chain) debug logs
     -h, --help                    print this help menu
