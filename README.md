@@ -21,12 +21,13 @@ Sensu plugins uses Rust.
 Usage: metrics-rust-loader CONF_FILE_PATH [options]
 
 Requires:
-  CONF_FILE_PATH: path to config file
+    CONF_FILE_PATH: path to config file
 
 Options:
-  -s, --show                          only print config envs
-  -d, --debug                         print debug logs
-  -h, --help                          print help menu
+    -m, --mode MODE(snmp|url)     set only monitor mode
+    -d, --debug                   print debug logs
+    -D, --debug-all               print all(chain) debug logs
+    -h, --help                    print this help menu
 ```
 
 ## Authors ##
